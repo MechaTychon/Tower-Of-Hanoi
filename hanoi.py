@@ -351,8 +351,17 @@ def main():
             continue
 
         parts = raw.split()
+        if len(parts) == 1 and len(parts[0]) == 2:
+            # allow shorthand like "AC" as well as "A C"
+            parts = [parts[0][0], parts[0][1]]
         if len(parts) != 2:
-            print("Please enter two peg letters, e.g. 'A C'. Type 'help' for commands.")
+            print("Please enter two peg letters, e.g. 'AC' or 'A C'. Type 'help' for commands.")
+            continue
+
+        src = game.peg_index(parts[0])
+        dst = game.peg_index(parts[1])
+        if src is None or dst is None:
+            print(f"Peg names must be one of {', '.join(PEG_NAMES)}.")
             continue
 
         src = game.peg_index(parts[0])
