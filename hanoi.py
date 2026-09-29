@@ -33,6 +33,11 @@ MAX_DISKS_HARD_WARNING = 15   # above this, warn strongly about terminal width
 PEG_NAMES = ["A", "B", "C"]
 
 
+def format_elapsed(seconds):
+    m, s = divmod(int(seconds), 60)
+    h, m = divmod(m, 60)
+    return f"{h:02d}:{m:02d}:{s:02d}" if h else f"{m:02d}:{s:02d}"
+
 # ---------------------------------------------------------------------------
 # Game state
 # ---------------------------------------------------------------------------
@@ -44,6 +49,7 @@ class Hanoi:
         self.pegs = [list(range(num_disks, 0, -1)), [], []]
         self.moves = 0
         self.history = []  # list of (from_idx, to_idx) for undo
+        self.start_time = time.time()
 
     def peg_index(self, letter):
         letter = letter.strip().upper()
@@ -78,11 +84,9 @@ class Hanoi:
         if not self.history:
             return False, "Nothing to undo."
         src, dst = self.history.pop()
-        # reverse the move without re-recording history, and don't count it
-        # as a "real" move that helps the player win faster
         disk = self.pegs[dst].pop()
         self.pegs[src].append(disk)
-        self.moves += 1  # undoing still costs a move, like real life
+        self.moves = max(0, self.moves - 1)  # undo removes a move from the count
         return True, f"Undid move: {PEG_NAMES[src]} -> {PEG_NAMES[dst]}"
 
     def is_solved(self, target_peg=2):
@@ -133,9 +137,10 @@ def render(game):
 
 
 def print_header(game):
+    elapsed = format_elapsed(time.time() - game.start_time)
     print("\n" + "=" * 50)
     print(f" TOWER OF HANOI   |  Disks: {game.num_disks}  |  Moves: {game.moves}"
-          f"  |  Optimal: {game.optimal_moves()}")
+          f"  |  Optimal: {game.optimal_moves()}  |  Time: {elapsed}")
     print("=" * 50)
 
 
@@ -159,7 +164,7 @@ def ask_num_disks():
 
         if n > MAX_DISKS_HARD_WARNING:
             print(
-                f"\n⚠️  WARNING: {n} disks requires {2**n - 1:,} moves to solve "
+                f"\n  WARNING: {n} disks requires {2**n - 1:,} moves to solve "
                 f"optimally, and the ASCII board will likely be wider than "
                 f"your terminal, breaking the display."
             )
@@ -171,7 +176,7 @@ def ask_num_disks():
 
         elif n > MAX_DISKS_SOFT_WARNING:
             print(
-                f"\n⚠️  Note: {n} disks means {2**n - 1:,} moves are needed to "
+                f"\n  Note: {n} disks means {2**n - 1:,} moves are needed to "
                 f"solve optimally — that could take a while to play by hand."
             )
             confirm = input("Continue with this many? [y/N]: ").strip().lower()
@@ -293,10 +298,9 @@ def main():
         render(game)
 
         if game.is_solved():
-            print(f"\n🎉 Solved in {game.moves} moves! "
+            elapsed = format_elapsed(time.time() - game.start_time)
+            print(f"\n Solved in {game.moves} moves and {elapsed}! "
                   f"(Optimal was {game.optimal_moves()} moves)")
-            if game.moves == game.optimal_moves():
-                print("Perfect game — that's the minimum possible!")
             break
 
         try:
